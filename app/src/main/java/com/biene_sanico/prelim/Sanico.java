@@ -9,12 +9,19 @@ import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.Toast;
+
 import java.util.Random;
+import java.text.DecimalFormat;
 public class Sanico extends AppCompatActivity {
     Button playBtn;
-    TextView getWLResult, getReel1, getReel2, getReel3;
+    TextView getUserBal, getWLResult, txtMultiplier, getReel1, getReel2, getReel3;
     EditText getBetReel1, getBetReel2, getBetReel3, getBetAmount;
 
+    Button resetButton;
+    String[] reelsResult = new String[3];
+    double userBalance = 1000.00;
+    int ctrMultiplier = 2;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -22,10 +29,15 @@ public class Sanico extends AppCompatActivity {
         initializeViews(); // Initialize the UI elements.
         setEditTextListeners(); // Set up text watchers for EditTexts
         setDigitInputFilters(); // Set input filters to allow only digits
+        txtMultiplier.setText("x"+String.valueOf(ctrMultiplier));
+        getUserBal.setText(String.valueOf(userBalance));
     }
 
     private void initializeViews() {
         playBtn = findViewById(R.id.btnAction);
+        resetButton = findViewById(R.id.btnReset);
+        txtMultiplier = findViewById(R.id.multiplier);
+        getUserBal = findViewById(R.id.userBalance);
         getReel1 = findViewById(R.id.reel1);
         getReel2 = findViewById(R.id.reel2);
         getReel3 = findViewById(R.id.reel3);
@@ -34,12 +46,14 @@ public class Sanico extends AppCompatActivity {
         getBetReel3 = findViewById(R.id.betInput3);
         getBetAmount = findViewById(R.id.betAmount);
         getWLResult = findViewById(R.id.winORlose);
+        updateResetButtonVisibility();
     }
 
     private void setEditTextListeners() {
-        getBetReel1.addTextChangedListener(new DigitTextWatcher(getBetReel1));
-        getBetReel2.addTextChangedListener(new DigitTextWatcher(getBetReel2));
-        getBetReel3.addTextChangedListener(new DigitTextWatcher(getBetReel3));
+        getBetReel1.addTextChangedListener(new DigitTextWatcher(getBetReel1, getBetReel2));
+        getBetReel2.addTextChangedListener(new DigitTextWatcher(getBetReel2, getBetReel3));
+        getBetReel3.addTextChangedListener(new DigitTextWatcher(getBetReel3, getBetAmount));
+
 
         // Add a TextWatcher to restrict betAmount to one decimal place
         getBetAmount.addTextChangedListener(new TextWatcher() {
@@ -98,7 +112,13 @@ public class Sanico extends AppCompatActivity {
         return betAmount.matches("\\d*\\.?\\d{0,2}");
     }
 
-
+    private void updateResetButtonVisibility() {
+        if (userBalance <= 0) {
+            resetButton.setVisibility(View.VISIBLE);
+        } else {
+            resetButton.setVisibility(View.GONE);
+        }
+    }
     public void actionBtn(View view) {
         String buttonText = ((TextView) view).getText().toString();
 
@@ -128,33 +148,101 @@ public class Sanico extends AppCompatActivity {
                 getBetAmount.requestFocus();
                 return;
             }
-            // Perform your PLAY action here
-            String tmpBetInput = betInput1 + betInput2 + betInput3;
-            getWLResult.setText(tmpBetInput);
 
+            double parsedBetAmount = Double.parseDouble(betAmount);
 
+            if (parsedBetAmount == 0) {
+                // Bet amount is 0, show toast and return
+                Toast.makeText(this, "Bet amount cannot be 0", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-            // Generate random numbers
+            if (parsedBetAmount > userBalance) {
+                // Bet amount is greater than user balance, show toast and return
+                Toast.makeText(this, "Not enough balance", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Generate a random number between 0 and 3 to represent the winning chance
             Random random = new Random();
-            int tmpNum1 = random.nextInt(9); // Change 10 to your desired upper limit
-            int tmpNum2 = random.nextInt(9); // Change 10 to your desired upper limit
-            int tmpNum3 = random.nextInt(9); // Change 10 to your desired upper limit
+            int winningChance = random.nextInt(4); // 0, 1, 2, or 3
+
+            // Generate random numbers for reels
+            int tmpNum1 = random.nextInt(10); // 0 to 9
+            int tmpNum2 = random.nextInt(10); // 0 to 9
+            int tmpNum3 = random.nextInt(10); // 0 to 9
+            reelsResult[0] = String.valueOf(tmpNum1);
+            reelsResult[1] = String.valueOf(tmpNum2);
+            reelsResult[2] = String.valueOf(tmpNum3);
 
             // Display the random numbers in the TextViews
             getReel1.setText(String.valueOf(tmpNum1));
             getReel2.setText(String.valueOf(tmpNum2));
             getReel3.setText(String.valueOf(tmpNum3));
 
+            // Check if the reels match the bet with a 25% probability (winningChance == 0)
+            if (winningChance == 0 &&
+                    reelsResult[0].equals(betInput1) &&
+                    reelsResult[1].equals(betInput2) &&
+                    reelsResult[2].equals(betInput3)) {
 
+                double compute = ctrMultiplier * parsedBetAmount;
+                userBalance += compute;
+
+                // Format userBalance to two decimal places
+                DecimalFormat decimalFormat = new DecimalFormat("#.##");
+                userBalance = Double.parseDouble(decimalFormat.format(userBalance));
+
+                getUserBal.setText(String.valueOf(userBalance));
+                getWLResult.setText("WIN");
+                ctrMultiplier += 1;
+                txtMultiplier.setText("x" + String.valueOf(ctrMultiplier));
+            } else {
+                getWLResult.setText("LOSE");
+                ctrMultiplier = 2;
+                txtMultiplier.setText("x" + String.valueOf(ctrMultiplier));
+
+                // Deduct bet amount from user balance
+                userBalance -= parsedBetAmount;
+
+                // Format userBalance to two decimal places
+                DecimalFormat decimalFormat = new DecimalFormat("#.##");
+                userBalance = Double.parseDouble(decimalFormat.format(userBalance));
+
+                getUserBal.setText(String.valueOf(userBalance));
+            }
+            playBtn.setText("SET");
+            updateResetButtonVisibility();
+        } else if (buttonText.equals("RESET")){
+            userBalance = 1000.00;
+            getUserBal.setText("1000.00");
+            getBetReel1.setText("");
+            getBetReel2.setText("");
+            getBetReel3.setText("");
+            getBetAmount.setText("");
+            getWLResult.setText("");
+            playBtn.setText("PLAY");
+            updateResetButtonVisibility();
+        } else if (buttonText.equals("SET")){
+            getBetReel1.setText("");
+            getBetReel2.setText("");
+            getBetReel3.setText("");
+            getBetAmount.setText("");
+            getWLResult.setText("");
+            playBtn.setText("PLAY");
         }
     }
 
-    // TextWatcher to limit input to one digit
+
+
+    // TextWatcher to limit input to one digit and move focus to the next EditText
     private class DigitTextWatcher implements TextWatcher {
         private EditText editText;
+        private EditText nextEditText;
 
-        DigitTextWatcher(EditText editText) {
+        DigitTextWatcher(EditText editText, EditText nextEditText) {
             this.editText = editText;
+            this.nextEditText = nextEditText;
         }
 
         @Override
@@ -171,6 +259,11 @@ public class Sanico extends AppCompatActivity {
                 // If more than one character is entered, limit it to one character
                 editText.setText(s.subSequence(0, 1));
                 editText.setSelection(1);
+            }
+
+            // Move focus to the next EditText if text is not empty
+            if (s.length() > 0 && nextEditText != null) {
+                nextEditText.requestFocus();
             }
         }
     }
