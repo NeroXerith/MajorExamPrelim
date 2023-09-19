@@ -18,11 +18,11 @@
             android:id="@+id/stdname"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
             android:layout_centerInParent="true"
             android:text="@string/std_name"
-            android:textSize="40sp"
             android:textColor="@color/white"
-            android:layout_alignParentTop="true" />
+            android:textSize="30sp" />
 
         <LinearLayout
             android:id="@+id/reelsLayout"
@@ -167,6 +167,7 @@
             android:orientation="horizontal"
             android:layout_marginTop="30dp">
                 <TextView
+                    android:id="@+id/winORlose"
                     android:layout_width="300dp"
                     android:layout_height="100dp"
                     android:paddingLeft="10dp"
@@ -194,6 +195,7 @@
                     android:background="@color/gray"
                     android:layout_marginBottom="20dp"
                     android:text="PLAY"
+                    android:onClick="actionBtn"
                     android:textSize="35sp"
                         />
                 <Button
